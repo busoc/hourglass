@@ -7,10 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
 	"github.com/midbel/jwt"
-
-	"hourglass"
 )
 
 func signin(s jwt.Signer) http.Handler {

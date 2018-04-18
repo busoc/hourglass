@@ -11,10 +11,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/handlers"
 	"github.com/midbel/jwt"
-
-	"hourglass"
 )
 
 type Func func(*http.Request) (interface{}, error)

@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
-
-	"hourglass"
 )
 
 func listTodos(r *http.Request) (interface{}, error) {

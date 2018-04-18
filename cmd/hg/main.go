@@ -8,16 +8,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"path/filepath"
+	"strconv"
 	"time"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/midbel/jwt"
 	"github.com/midbel/rustine"
-
-	"hourglass"
 )
 
 const MaxBodySize = 1 << 32

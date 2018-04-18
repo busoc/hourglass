@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
-
-	"hourglass"
 )
 
 func listEvents(r *http.Request) (interface{}, error) {

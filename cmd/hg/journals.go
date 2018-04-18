@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
-
-	"hourglass"
 )
 
 func listJournals(r *http.Request) (interface{}, error) {
-  var fd, td time.Time
+	var fd, td time.Time
 	q := r.URL.Query()
 	if q.Get("dtstart") != "" || q.Get("dtend") != "" {
 		var err error
