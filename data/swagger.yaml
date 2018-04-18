@@ -1,0 +1,1734 @@
+swagger: '2.0'
+info:
+  description: to be written
+  version: 0.1.0
+  title: Hourglass
+  termsOfService: ''
+  contact:
+    name: busoc ground controller
+    email: busocgc@busoc.be
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: 'virtualtest.busoc.be:9000'
+basePath: /
+consumes:
+  - application/json
+produces:
+  - application/json
+  - application/x-gzip
+securityDefinitions:
+  api_key:
+    type: apiKey
+    description: json web token
+    in: header
+    name: Authorization
+  basicAuth:
+    type: basic
+externalDocs:
+  description: internal calendaring and scheduling
+  url: 'https://tools.ietf.org/html/rfc5545'
+tags:
+  - name: Events
+    description: everything about scheduled activities
+  - name: Todos
+    description: manage actions/todos
+  - name: Files
+    description: manage files used for events/activities
+  - name: Slots
+    description: manage slots
+  - name: Uplinks
+    description: manage file's uplinks (Earth to MMU)
+  - name: Transfers
+    description: manage file's transfers (MMU to Payload)
+  - name: Downlinks
+    description: manage file's downlinks (Payload to MMU)
+  - name: Authentication
+    description: user authentication
+  - name: Users
+    description: manage users
+  - name: Categories
+    description: manage categories
+schemes:
+  - http
+responses:
+  '406':
+    description: can not generated content as expected by accept header
+paths:
+  /auth:
+    post:
+      tags:
+        - Authentication
+        - Users
+      summary: authenticate user
+      operationId: Signin
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - user
+              - passwd
+            properties:
+              user:
+                type: string
+                example: rla
+              passwd:
+                type: string
+                example: helloworld
+      responses:
+        '200':
+          description: authentication succeed
+        '400':
+          description: invalid input provided
+        '401':
+          description: invalid credentials provided
+  /users/:
+    post:
+      tags:
+        - Users
+      summary: register user
+      operationId: RegisterUser
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              firstname:
+                type: string
+                description: user's first name
+                example: roger
+              lastname:
+                type: string
+                description: user's last name
+                example: lamotte
+              initial:
+                type: string
+                description: user's initial
+                example: rla
+                minLength: 2
+                maxLength: 3
+              internal:
+                type: boolean
+              email:
+                type: string
+              passwd:
+                type: string
+              positions:
+                type: array
+                items:
+                  type: string
+      responses:
+        '201':
+          description: user registered
+          schema:
+            $ref: '#/definitions/User'
+        '401':
+          description: unauthenticated user
+    get:
+      tags:
+        - Users
+      summary: list of users
+      operationId: ListUsers
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list users
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        '204':
+          description: no user available
+        '401':
+          description: unauthenticated user
+  '/users/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: user id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Users
+      description: view user detail
+      operationId: ViewUser
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/User'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: user not found
+    put:
+      tags:
+        - Users
+      description: update user information and settings
+      operationId: UpdateUser
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/User'
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/User'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: user not found
+  '/users/{id}/passwd':
+    parameters:
+      - name: id
+        in: path
+        description: user id
+        required: true
+        type: integer
+        format: int64
+    put:
+      tags:
+        - Users
+      summary: update user password
+      operationId: UpdatePasswd
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '204':
+          description: password updated
+        '401':
+          description: unauthenticated user
+        '403':
+          description: user try to update password of another user
+  /categories/:
+    get:
+      tags:
+        - Categories
+      summary: list of categories
+      operationId: ListCategories
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list categories
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Category'
+        '204':
+          description: no categories available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Categories
+      summary: create new category
+      operationId: NewCategory
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: category successfully created
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/categories/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: category id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Categories
+      summary: get detailed information about a category
+      operationId: ViewCategory
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+        '400':
+          description: bad request
+        '404':
+          description: not found
+    put:
+      tags:
+        - Categories
+      summary: update category information
+      operationId: UpdateCategory
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: bad request
+        '404':
+          description: not found
+  /transfers/:
+    get:
+      tags:
+        - Transfers
+      summary: list of transfers
+      operationId: ListTransfers
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - in: query
+          name: dtstart
+          type: string
+          format: date-time
+        - in: query
+          name: dtend
+          type: string
+          format: date-time
+        - in: query
+          name: 'category[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+        - in: query
+          name: 'status[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+      responses:
+        '200':
+          description: list of transfers (scheduled to completed)
+          schema:
+            $ref: '#/definitions/Transfer'
+        '204':
+          description: no transfers available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Transfers
+      summary: create a transfer
+      operationId: NewTransfer
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            required:
+              - uplink
+              - event
+            properties:
+              uplink:
+                type: integer
+                format: int64
+                example: 34
+              event:
+                type: integer
+                format: int64
+                example: 563
+      responses:
+        '201':
+          description: transfer successfully created
+          schema:
+            $ref: '#/definitions/Transfer'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested action
+  '/transfers/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: transfer id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Transfers
+      summary: get detailed information about transfer
+      operationId: ViewTransfer
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Transfer'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: uplink not found
+    put:
+      tags:
+        - Transfers
+      summary: update transfer status
+      operationId: UpdateTransfer
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Status'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: transfer successfully updated
+          schema:
+            $ref: '#/definitions/Transfer'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  /uplinks/:
+    get:
+      tags:
+        - Uplinks
+      summary: list of scheduled uplinks
+      operationId: ListUplinks
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - in: query
+          name: dtstart
+          type: string
+          format: date-time
+        - in: query
+          name: dtend
+          type: string
+          format: date-time
+        - in: query
+          name: 'category[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+        - in: query
+          name: 'status[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+      responses:
+        '200':
+          description: list of uplinks (scheduled to completed)
+          schema:
+            $ref: '#/definitions/Uplink'
+        '204':
+          description: no uplinks available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Uplinks
+      summary: schedule a new uplink
+      operationId: NewUplink
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - event
+              - slot
+              - file
+            properties:
+              event:
+                type: integer
+                format: int64
+                example: 3139293
+              slot:
+                type: integer
+                format: int64
+                example: 34635621
+              file:
+                type: integer
+                format: int64
+                example: 219
+      responses:
+        '201':
+          description: uplink successfully created
+          schema:
+            $ref: '#/definitions/Uplink'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/uplinks/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: uplink id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Uplinks
+      summary: get detailed information about uplink
+      operationId: ViewUplink
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Uplink'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: uplink not found
+    put:
+      tags:
+        - Uplinks
+      summary: update uplink status
+      operationId: UpdateUplink
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Status'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: uplink successfully updated
+          schema:
+            $ref: '#/definitions/Uplink'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  /downlinks/:
+    get:
+      tags:
+        - Downlinks
+      summary: List of scheduled downlinks
+      operationId: ListDownlinks
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - in: query
+          name: dtstart
+          type: string
+          format: date-time
+        - in: query
+          name: dtend
+          type: string
+          format: date-time
+        - in: query
+          name: 'category[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+        - in: query
+          name: 'status[]'
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+      responses:
+        '200':
+          description: list downlinks
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Downlink'
+        '204':
+          description: no downlinks available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Downlinks
+      summary: create new downlink
+      operationId: NewDownlink
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - event
+              - slot
+              - file
+            properties:
+              event:
+                type: integer
+                format: int64
+                example: 10354
+              slot:
+                type: integer
+                format: int64
+                example: 34635621
+              file:
+                type: integer
+                format: int64
+                example: 2
+      responses:
+        '201':
+          description: downlink successfully created
+          schema:
+            $ref: '#/definitions/Downlink'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/downlinks/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: downlink id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Downlinks
+      summary: get detailed information about downlink
+      operationId: ViewDownlink
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Downlink'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: uplink not found
+    put:
+      tags:
+        - Downlinks
+      summary: update downlink status
+      operationId: UpdateDownlink
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Status'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: downlink successfully updated
+          schema:
+            $ref: '#/definitions/Downlink'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  /slots/:
+    get:
+      tags:
+        - Slots
+      summary: list of slots
+      operationId: ListSlots
+      parameters:
+        - name: 'category[]'
+          in: query
+          collectionFormat: multi
+          required: false
+          type: array
+          items:
+            type: string
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list of slots
+        '204':
+          description: no slots available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Slots
+      operationId: NewSlot
+      summary: register a new slot
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Slot'
+      responses:
+        '201':
+          description: slot successfully created
+          schema:
+            $ref: '#/definitions/Slot'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/slots/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: slot id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Slots
+      summary: get detailed information about a slot
+      operationId: ViewSlot
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Slot'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: slot not found
+    delete:
+      tags:
+        - Slots
+      summary: delete a slot
+      operationId: DeleteSlot
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '204':
+          description: operation succeed
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: slot not found
+  /files/:
+    get:
+      tags:
+        - Files
+      summary: list of files
+      operationId: ListFiles
+      parameters:
+        - name: 'category[]'
+          required: false
+          collectionFormat: multi
+          in: query
+          type: array
+          items:
+            type: string
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list of files
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/File'
+        '204':
+          description: no files available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Files
+      summary: create a new file
+      operationId: NewFile
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/File'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '201':
+          description: file successfully created
+          schema:
+            $ref: '#/definitions/File'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/files/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: file id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Files
+      summary: get detailed information about a file
+      operationId: ViewFile
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/File'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: file not found
+    post:
+      tags:
+        - Files
+      summary: superseed a file
+      operationId: ReplaceFile
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/File'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '201':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/File'
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: file not found
+    put:
+      tags:
+        - Files
+      summary: update an existing file
+      operationId: UpdateFile
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/File'
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/File'
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: file not found
+    delete:
+      tags:
+        - Files
+      summary: delete a file
+      operationId: DeleteFile
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '204':
+          description: operation succeed
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: file not found
+  /todos/:
+    get:
+      tags:
+        - Todos
+      summary: list of actions/todos
+      description: list of actions/todos
+      operationId: ListTodos
+      parameters:
+        - name: 'category[]'
+          in: query
+          required: false
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list of actions/todos
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Todo'
+        '204':
+          description: no todos available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Todos
+      summary: create a todo/action
+      description: create a new todo/action
+      operationId: NewTodo
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '201':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/todos/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: action/todo id
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Todos
+      summary: get detailed information on an action/todo
+      operationId: ViewTodo
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Todo'
+        '401':
+          description: unauthenticated user
+        '404':
+          description: action/todo not found
+    put:
+      tags:
+        - Todos
+      summary: update an action/todo
+      operationId: UpdateTodo
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Todo'
+      responses:
+        '200':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: todo not found
+    post:
+      tags:
+        - Todos
+      summary: update an action/todo
+      operationId: NewSubTodo
+      security:
+        - basicAuth: []
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Todo'
+      responses:
+        '201':
+          description: operation succeed
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: todo not found
+    delete:
+      tags:
+        - Todos
+      summary: delete an action/todo
+      operationId: DeleteTodo
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '204':
+          description: operation succeed
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: todo not found
+  /events/:
+    get:
+      tags:
+        - Events
+      summary: list of events
+      operationId: ListEvents
+      parameters:
+        - name: dtstart
+          in: query
+          type: string
+          format: date-time
+        - name: dtend
+          in: query
+          type: string
+          format: date-time
+        - name: 'category[]'
+          in: query
+          required: false
+          collectionFormat: multi
+          type: array
+          items:
+            type: string
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: list of events
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Event'
+        '204':
+          description: no events available
+        '401':
+          description: unauthenticated user
+    post:
+      tags:
+        - Events
+      summary: schedule a new event
+      description: ''
+      operationId: NewEvent
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Pet object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/Event'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '201':
+          description: event succesfully created
+          schema:
+            $ref: '#/definitions/Event'
+        '400':
+          description: invalid input provided
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+  '/events/{source}/':
+    post:
+      tags:
+        - Events
+      summary: import events
+      operationId: ImportEvents
+      description: ''
+      security:
+        - basicAuth: []
+        - api_key: []
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: source
+          in: path
+          description: source of events
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              source:
+                type: string
+                example: optimis
+              events:
+                type: array
+                items:
+                  $ref: '#/definitions/Event'
+      responses:
+        '204':
+          description: operation succeed
+        '400':
+          description: bad request
+  '/events/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: id of Event to return
+        required: true
+        type: integer
+        format: int64
+    get:
+      tags:
+        - Events
+      summary: get detailed information about an event
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: event
+          schema:
+            $ref: '#/definitions/Event'
+        '400':
+          description: invalid request
+        '401':
+          description: unauthenticated user
+        '404':
+          description: event not found
+    put:
+      tags:
+        - Events
+      summary: Update an existing event
+      description: ''
+      operationId: UpdateEvent
+      parameters:
+        - in: body
+          name: event
+          description: properties of event object that needs to be updated
+          required: true
+          schema:
+            $ref: '#/definitions/Event'
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '200':
+          description: event successfully updated
+          schema:
+            $ref: '#/definitions/Event'
+        '400':
+          description: invalid request
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: event not found
+    delete:
+      tags:
+        - Events
+      summary: Delete an event
+      operationId: DeleteEvent
+      security:
+        - basicAuth: []
+        - api_key: []
+      responses:
+        '204':
+          description: event succesfully deleted
+        '400':
+          description: invalid input
+        '401':
+          description: unauthenticated user
+        '403':
+          description: authenticated user is no allowed to perform requested actions
+        '404':
+          description: event not found
+definitions:
+  Status:
+    description: status
+    type: string
+    enum:
+      - n/a
+      - tentative
+      - scheduled
+      - on going
+      - completed
+      - canceled
+      - aborted
+  Priority:
+    description: priority
+    type: string
+    enum:
+      - low
+      - normal
+      - high
+      - urgent
+  Source:
+    description: source
+    type: string
+    enum:
+      - ''
+      - optimis
+      - saa
+      - comms
+      - tle
+  Category:
+    type: object
+    required:
+      - name
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 372
+      name:
+        type: string
+        example: payload
+      categories:
+        type: array
+        items:
+          type: string
+      lastmod:
+        type: string
+        format: date-time
+        example: '2017-09-12T34:45:00Z'
+        readOnly: true
+      user:
+        type: string
+        readOnly: true
+        example: nbr
+  Transfer:
+    type: object
+    required:
+      - status
+      - location
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 3992
+      status:
+        $ref: '#/definitions/Status'
+      location:
+        type: string
+        example: /var/payload/command/
+      lastmod:
+        type: string
+        format: date-time
+        example: '2018-09-02T03:09:12Z'
+        readOnly: true
+      user:
+        type: string
+        readOnly: true
+        example: ksu
+      event:
+        $ref: '#/definitions/Event'
+      uplink:
+        $ref: '#/definitions/Uplink'
+  Uplink:
+    type: object
+    required:
+      - status
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 234892
+      status:
+        $ref: '#/definitions/Status'
+      user:
+        type: string
+        readOnly: true
+        example: lpi
+      lastmod:
+        type: string
+        format: date-time
+        readOnly: true
+        example: '2017-05-08T15:45:13Z'
+      slot:
+        $ref: '#/definitions/Slot'
+      event:
+        $ref: '#/definitions/Event'
+      file:
+        $ref: '#/definitions/File'
+  Downlink:
+    type: object
+    required:
+      - status
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 234892
+      status:
+        $ref: '#/definitions/Status'
+      user:
+        type: string
+        readOnly: true
+        example: lpi
+      lastmod:
+        type: string
+        format: date-time
+        readOnly: true
+        example: '2017-05-08T15:45:13Z'
+      slot:
+        $ref: '#/definitions/Slot'
+      event:
+        $ref: '#/definitions/Event'
+      file:
+        $ref: '#/definitions/File'
+      filename:
+        type: string
+        example: results.log
+  User:
+    type: object
+    properties:
+      uid:
+        type: integer
+        format: int64
+        example: 2
+      firstname:
+        type: string
+        example: roger
+      lastname:
+        type: string
+        example: lamotte
+      initial:
+        type: string
+        minLength: 3
+        example: rla
+      email:
+        type: string
+        format: email
+      internal:
+        type: boolean
+        default: false
+      settings:
+        type: object
+      positions:
+        type: array
+        items:
+          type: string
+          example:
+            - gc
+            - dev
+  Slot:
+    type: object
+    required:
+      - uid
+      - name
+      - category
+    properties:
+      uid:
+        type: integer
+        format: int64
+        example: 318825003
+      name:
+        type: string
+        example: s-slot-0034
+      category:
+        type: string
+        example: payload
+      user:
+        type: string
+        readOnly: true
+        example: ksu
+      lastmod:
+        type: string
+        format: date-time
+        readOnly: true
+        example: '2017-07-15T12:45:14Z'
+      file:
+        type: string
+        description: current file stored in a slot (if any)
+        readOnly: true
+        example: loadeeprom.dat
+      status:
+        $ref: '#/definitions/Status'
+      uplinks:
+        readOnly: true
+        type: array
+        items:
+          $ref: '#/definitions/Uplink'
+  Todo:
+    type: object
+    required:
+      - summary
+      - status
+      - priority
+      - due
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 1542354
+      summary:
+        type: string
+        example: write hourglass API documentation
+      description:
+        type: string
+      status:
+        $ref: '#/definitions/Status'
+      priority:
+        $ref: '#/definitions/Priority'
+      metadata:
+        type: object
+        default: 'null'
+        example:
+          reviewers:
+            - ksu
+            - adi
+          paqa: eh
+          vcs: none
+      version:
+        type: integer
+        format: int64
+        default: 1
+        readOnly: true
+        example: 4
+      due:
+        type: string
+        format: date-time
+        example: '2018-06-11T17:00:00Z'
+      dtstart:
+        type: string
+        format: date-time
+        example: '2017-06-29T09:00:00'
+      dtend:
+        type: string
+        format: date-time
+        example: '2018-03-12T19:00:00'
+      lastmod:
+        type: string
+        format: date-time
+        readOnly: true
+        example: '2017-07-25T14:55:00Z'
+      user:
+        type: string
+        readOnly: true
+        example: nbr
+      categories:
+        example:
+          - test
+          - development
+          - documentation
+        type: array
+        items:
+          type: string
+      assignees:
+        example:
+          - adi
+          - ksu
+          - nbr
+        type: array
+        items:
+          type: string
+      todos:
+        type: array
+        default: 'null'
+        items:
+          $ref: '#/definitions/Todo'
+      history:
+        type: array
+        default: 'null'
+        items:
+          $ref: '#/definitions/Todo'
+  File:
+    type: object
+    required:
+      - name
+      - raw
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 3424321
+      name:
+        type: string
+        example: loadeeprom.dat
+      summary:
+        type: string
+      raw:
+        type: string
+        format: binary
+        example: bG9hZCBlZXByb20K
+      categories:
+        type: array
+        example:
+          - command
+          - configuration
+          - test
+        items:
+          type: string
+      metadata:
+        type: object
+        example:
+          usage: restricted
+          reviewers:
+            - ksu
+            - ami
+      version:
+        type: integer
+        format: int64
+        readOnly: true
+        default: 1
+        example: 10
+      length:
+        type: integer
+        format: int64
+        description: length (in bytes) of a file
+        readOnly: true
+        example: 23
+      sum:
+        type: string
+        description: md5 checksum of a file
+        readOnly: true
+        example: 33e0cf06a8fc493226c898f4c1e465e5
+      dummy:
+        type: boolean
+        default: 'false'
+        description: flag indicating if a file does not contain operational data
+        readOnly: true
+        example: false
+      superseeded:
+        type: boolean
+        default: 'false'
+        description: >-
+          flag indicating if the file content has been superseeded by a newer
+          version
+        readOnly: true
+        example: true
+      user:
+        type: string
+        description: user having created/updated the event object
+        readOnly: true
+        example: ksu
+      lastmod:
+        type: string
+        format: date-time
+        description: last modification time of a file
+        readOnly: true
+        example: '2017-07-18T09:18:00Z'
+      slot:
+        type: string
+        default: ''
+        description: current slot's name used by a file (if any)
+        readOnly: true
+        example: s-slot-002
+      location:
+        type: string
+        default: ''
+        description: current location of a file on a payload (if any)
+        readOnly: true
+        example: /var/payload/configuration/rom
+      history:
+        type: array
+        readOnly: true
+        default: 'null'
+        items:
+          $ref: '#/definitions/File'
+  Event:
+    type: object
+    required:
+      - summary
+      - status
+      - dtstart
+      - dtend
+    properties:
+      uid:
+        type: integer
+        format: int64
+        readOnly: true
+        example: 3452521
+      version:
+        type: integer
+        format: int64
+        readOnly: true
+        default: 1
+        example: 103
+      summary:
+        type: string
+        example: thunderstorm
+      description:
+        type: string
+      source:
+        $ref: '#/definitions/Source'
+      status:
+        $ref: '#/definitions/Status'
+      metadata:
+        type: object
+        description: free form object to add information to the event
+      user:
+        type: string
+        description: user having created/updated the event object
+        readOnly: true
+        example: ami
+      dtstart:
+        type: string
+        format: date-time
+        example: '2017-09-01T06:09:10Z'
+      dtend:
+        type: string
+        format: date-time
+        example: '2017-09-18T09:06:45Z'
+      attendees:
+        type: array
+        example:
+          - och
+          - cao
+          - ksu
+          - cja
+        items:
+          type: string
+        description: list of users that will take part to the event object
+      categories:
+        type: array
+        example:
+          - operations
+          - asim
+        items:
+          type: string
+      lastmod:
+        type: string
+        format: date-time
+        example: '2017-07-29T09:15:00Z'
+        description: last modification time of an event
+        readOnly: true
+      events:
+        type: array
+        default: 'null'
+        items:
+          $ref: '#/definitions/Event'
+      history:
+        type: array
+        default: 'null'
+        items:
+          $ref: '#/definitions/Event'
