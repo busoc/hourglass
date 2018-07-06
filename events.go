@@ -36,7 +36,7 @@ func ListEvents(db *sql.DB, f, t time.Time, cs []string) ([]*Event, error) {
 		t = f.Add(time.Hour * 24)
 	}
 	const q = `select pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where (dtstart between $1 and $2 or ($1, $2) overlaps(dtstart, dtend)) and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end`
-	rs, err := db.Query(q, f, t, pq.StringArray(cs))
+	rs, err := db.Query(q, f.UTC(), t.UTC(), pq.StringArray(cs))
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func UpdateEvent(db *sql.DB, e *Event) error {
 		tx.Rollback()
 		return err
 	}
-	if err := tx.QueryRow(q, e.Summary, e.Description, e.Starts, e.Ends, m, e.User, e.State, e.ExStarts, e.ExEnds, e.Id).Scan(&e.Lastmod); err != nil {
+	if err := tx.QueryRow(q, e.Summary, e.Description, e.Starts.UTC(), e.Ends.UTC(), m, e.User, e.State, e.ExStarts.UTC(), e.ExEnds.UTC(), e.Id).Scan(&e.Lastmod); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -202,6 +202,10 @@ func scanEvents(s Scanner) (*Event, error) {
 		return nil, err
 	}
 
+	e.Starts = e.Starts.UTC()
+	e.Ends = e.Ends.UTC()
+	e.ExStarts = e.ExStarts.UTC()
+	e.ExEnds = e.ExEnds.UTC()
 	e.Categories = []string(cs)
 	e.Attendees = []string(as)
 
@@ -218,7 +222,7 @@ func createEvent(tx *sql.Tx, e *Event) error {
 	if err != nil {
 		return err
 	}
-	r := tx.QueryRow(q, e.Summary, e.Description, e.Source, e.Starts, e.Ends, m, e.User, e.Id)
+	r := tx.QueryRow(q, e.Summary, e.Description, e.Source, e.Starts.UTC(), e.Ends.UTC(), m, e.User, e.Id)
 	return r.Scan(&e.Id)
 }
 

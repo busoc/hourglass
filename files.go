@@ -1,8 +1,8 @@
 package hourglass
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"io"

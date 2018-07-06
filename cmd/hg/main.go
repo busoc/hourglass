@@ -119,6 +119,7 @@ func setupRoutes(c *Config) (http.Handler, error) {
 	r.Handle("/events/{id:[0-9]+}", handle(newEvent, os.Stderr, s)).Methods("POST", "OPTIONS")
 	r.Handle("/events/{id:[0-9]+}", handle(updateEvent, os.Stderr, s)).Methods("PUT", "OPTIONS")
 	r.Handle("/events/{id:[0-9]+}", handle(deleteEvent, os.Stderr, s)).Methods("DELETE", "OPTIONS")
+
 	r.Handle("/events/{source:[a-z]+}/", allow(importEvents, os.Stderr, c.Import.User, c.Import.Passwd, c.Import.Hosts)).Methods("POST", "OPTIONS")
 
 	r.Handle("/todos/", handle(listTodos, os.Stderr, s)).Methods("GET", "OPTIONS")
