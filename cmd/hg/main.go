@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/midbel/jwt"
+	"github.com/midbel/cli"
 	"github.com/midbel/rustine"
 )
 
@@ -42,17 +43,12 @@ type Config struct {
 	Import   *I     `json:"import"`
 }
 
-var (
-	Version   string
-	BuildTime string
-)
-
 func main() {
 	version := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 	if *version {
 		log.SetFlags(0)
-		log.Printf("%s version %s (%s)", filepath.Base(os.Args[0]), Version, BuildTime)
+		log.Printf("%s version %s %s", filepath.Base(os.Args[0]), cli.Version, cli.BuildTime)
 		os.Exit(1)
 	}
 	f, err := os.Open(flag.Arg(0))
