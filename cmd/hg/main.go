@@ -10,13 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/busoc/hourglass"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	"github.com/midbel/jwt"
 	"github.com/midbel/cli"
+	"github.com/midbel/jwt"
 	"github.com/midbel/rustine"
 )
 
@@ -31,6 +32,7 @@ type T struct {
 }
 
 type I struct {
+	Prefix string   `json:"prefix"`
 	User   string   `json:"user"`
 	Passwd string   `json:"passwd"`
 	Hosts  []string `json:"sources"`
@@ -72,25 +74,68 @@ func main() {
 	}
 	defer db.Close()
 
-	r, err := setupRoutes(c)
-	if err != nil {
+	r := mux.NewRouter()
+	if err := setupRoutes(r, c); err != nil {
 		log.Fatalln(err)
+	}
+	if c.Import != nil && c.Import.Prefix != "" {
+		setupRoutesBis(r, c)
 	}
 	if err := http.ListenAndServe(c.Addr, r); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func setupRoutes(c *Config) (http.Handler, error) {
+func setupRoutesBis(r *mux.Router, c *Config) error {
+	c.Import.Prefix = strings.Trim(c.Import.Prefix, "/")
+
+	paths := []struct {
+		Path    string
+		Method  string
+		Handler Func
+	}{
+		{Path: "/events/{source:[a-z]+}/", Handler: importEvents, Method: http.MethodPost},
+		{Path: "/users/", Handler: listUsers},
+		{Path: "/categories/", Handler: listCategories},
+		{Path: "/dors/", Handler: listJournals},
+		{Path: "/events/", Handler: listEvents},
+		{Path: "/todos/", Handler: listTodos},
+		{Path: "/files/", Handler: listFiles},
+		{Path: "/slots/", Handler: listSlots},
+		{Path: "/uplinks/", Handler: listUplinks},
+		{Path: "/downlinks/", Handler: listDownlinks},
+		{Path: "/transfers/", Handler: listTransfers},
+		{Path: "/users/{id:[0-9]+}", Handler: viewUser},
+		{Path: "/categories/{id:[0-9]+}", Handler: viewCategory},
+		{Path: "/dors/{id:[0-9]+}", Handler: viewJournal},
+		{Path: "/events/{id:[0-9]+}", Handler: viewEvent},
+		{Path: "/todos/{id:[0-9]+}", Handler: viewTodo},
+		{Path: "/files/{id:[0-9]+}", Handler: viewFile},
+		{Path: "/slots/{id:[0-9]+}", Handler: viewSlot},
+		{Path: "/uplinks/{id:[0-9]+}", Handler: viewUplink},
+		{Path: "/downlinks/{id:[0-9]+}", Handler: viewDownlink},
+		{Path: "/transfers/{id:[0-9]+}", Handler: viewTransfer},
+	}
+	s := r.PathPrefix("/" + c.Import.Prefix).Subrouter()
+	for _, p := range paths {
+		h := allow(p.Handler, os.Stderr, c.Import.User, c.Import.Passwd, c.Import.Hosts)
+		if p.Method == "" {
+			p.Method = http.MethodGet
+		}
+		s.Handle(p.Path, h).Methods(p.Method, http.MethodOptions)
+	}
+
+	return nil
+}
+
+func setupRoutes(r *mux.Router, c *Config) error {
 	if c.Token.Secret == "random" || c.Token.Secret == "" {
 		c.Token.Secret = rustine.RandomString(16)
 	}
 	s, err := jwt.New("hs256", c.Token.Secret, c.Token.Issuer, c.Token.TTL)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	r := mux.NewRouter()
-
 	r.Handle("/auth", signin(s)).Methods("POST", "OPTIONS")
 
 	r.Handle("/users/", handle(listUsers, os.Stderr, s)).Methods("GET", "OPTIONS")
@@ -115,8 +160,6 @@ func setupRoutes(c *Config) (http.Handler, error) {
 	r.Handle("/events/{id:[0-9]+}", handle(newEvent, os.Stderr, s)).Methods("POST", "OPTIONS")
 	r.Handle("/events/{id:[0-9]+}", handle(updateEvent, os.Stderr, s)).Methods("PUT", "OPTIONS")
 	r.Handle("/events/{id:[0-9]+}", handle(deleteEvent, os.Stderr, s)).Methods("DELETE", "OPTIONS")
-
-	r.Handle("/events/{source:[a-z]+}/", allow(importEvents, os.Stderr, c.Import.User, c.Import.Passwd, c.Import.Hosts)).Methods("POST", "OPTIONS")
 
 	r.Handle("/todos/", handle(listTodos, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/todos/", handle(newTodo, os.Stderr, s)).Methods("POST", "OPTIONS")
@@ -152,7 +195,7 @@ func setupRoutes(c *Config) (http.Handler, error) {
 	r.Handle("/transfers/{id:[0-9]+}", handle(viewTransfer, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/transfers/{id:[0-9]+}", handle(updateTransfer, os.Stderr, s)).Methods("PUT", "OPTIONS")
 
-	return r, nil
+	return nil
 }
 
 func updateCategory(r *http.Request) (interface{}, error) {
