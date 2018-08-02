@@ -24,7 +24,7 @@ func ListJournals(db *sql.DB, f, t time.Time, cs []string) ([]*Journal, error) {
 		f = time.Now().Truncate(time.Hour * 24)
 		t = f.Add(time.Hour * 24)
 	}
-	const q = `select pk, day, summmary, meta, state, lastmod, person, categories from vjournals where day between $1 and $2 and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end`
+	const q = `select pk, day, summary, meta, state, lastmod, person, categories from vjournals where day between $1 and $2 and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end`
 	rs, err := db.Query(q, f, t, pq.StringArray(cs))
 	switch err {
 	case nil:
@@ -37,7 +37,7 @@ func ListJournals(db *sql.DB, f, t time.Time, cs []string) ([]*Journal, error) {
 }
 
 func ViewJournal(db *sql.DB, id int) (*Journal, error) {
-	const q = `select pk, day, summmary, meta, state, lastmod, person, categories from vjournals where pk=$1`
+	const q = `select pk, day, summary, meta, state, lastmod, person, categories from vjournals where pk=$1`
 	j, err := scanJournals(db.QueryRow(q, id))
 	switch err {
 	default:
@@ -99,7 +99,7 @@ func createJournal(tx *sql.Tx, j *Journal) error {
 	const q = `
   with
     u(pk) as (select pk from vusers where initial=$5)
-  insert int schedule.journals(day, summary, meta, state, person) values($1, $2, $3, $4, (select pk from u)) returning pk, lastmod
+  insert into schedule.journals(day, summary, meta, state, person) values($1, $2, $3, $4, (select pk from u)) returning pk, lastmod
   `
 	m, err := json.Marshal(j.Meta)
 	if err != nil {
