@@ -50,5 +50,5 @@ func newJournal(r *http.Request) (interface{}, error) {
 	if err := hourglass.NewJournal(db, &j); err != nil {
 		return nil, err
 	}
-	return hourglass.ViewEvent(db, j.Id)
+	return hourglass.ViewJournal(db, j.Id)
 }
