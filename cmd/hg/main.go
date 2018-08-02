@@ -94,6 +94,7 @@ func setupRoutesBis(r *mux.Router, c *Config) error {
 		Method  string
 		Handler Func
 	}{
+		{Path: "/sources/", Handler: listSources},
 		{Path: "/events/{source:[a-z]+}/", Handler: importEvents, Method: http.MethodPost},
 		{Path: "/users/", Handler: listUsers},
 		{Path: "/categories/", Handler: listCategories},
@@ -154,6 +155,7 @@ func setupRoutes(r *mux.Router, c *Config) error {
 	r.Handle("/dors/", handle(newJournal, os.Stderr, s)).Methods("POST", "OPTIONS")
 	r.Handle("/dors/{id:[0-9]+}", handle(viewJournal, os.Stderr, s)).Methods("GET", "OPTIONS")
 
+	r.Handle("/sources/", handle(listSources, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/events/", handle(listEvents, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/events/", handle(newEvent, os.Stderr, s)).Methods("POST", "OPTIONS")
 	r.Handle("/events/{id:[0-9]+}", handle(viewEvent, os.Stderr, s)).Methods("GET", "OPTIONS")

@@ -30,13 +30,32 @@ type Event struct {
 	Versions []*Event `json:"history,omitempty"`
 }
 
-func ListEvents(db *sql.DB, f, t time.Time, cs []string) ([]*Event, error) {
+func ListSources(db *sql.DB) ([]string, error) {
+	const q = `select distinct source from vevents where source is not null`
+	rs, err := db.Query(q)
+	if err != nil {
+		return nil, nil
+	}
+	defer rs.Close()
+
+	vs := make([]string, 0, 10)
+	for rs.Next() {
+		var v string
+		if err := rs.Scan(&v); err != nil {
+			return nil, err
+		}
+		vs = append(vs, v)
+	}
+	return vs, nil
+}
+
+func ListEvents(db *sql.DB, f, t time.Time, cs, vs []string) ([]*Event, error) {
 	if f.IsZero() && t.IsZero() {
 		f = time.Now().Truncate(time.Hour * 24)
 		t = f.Add(time.Hour * 24)
 	}
-	const q = `select pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where (dtstart between $1 and $2 or ($1, $2) overlaps(dtstart, dtend)) and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end`
-	rs, err := db.Query(q, f.UTC(), t.UTC(), pq.StringArray(cs))
+	const q = `select pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where (dtstart between $1 and $2 or ($1, $2) overlaps(dtstart, dtend)) and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end and case when cardinality($4::varchar[])>0 then source in $4 else true end`
+	rs, err := db.Query(q, f.UTC(), t.UTC(), pq.StringArray(cs), pq.StringArray(vs))
 	if err != nil {
 		return nil, err
 	}
@@ -45,9 +64,9 @@ func ListEvents(db *sql.DB, f, t time.Time, cs []string) ([]*Event, error) {
 
 func ViewEvent(db *sql.DB, id int) (*Event, error) {
 	const (
-		q = `select pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where pk=$1`
-		h = `select pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where parent=$1`
-		v = `select pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from revisions.vevents where pk=$1`
+		q = `select pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where pk=$1`
+		h = `select pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where parent=$1`
+		v = `select pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from revisions.vevents where pk=$1`
 	)
 	e, err := scanEvents(db.QueryRow(q, id))
 	switch err {
@@ -195,7 +214,7 @@ func scanEvents(s Scanner) (*Event, error) {
 	)
 
 	e := new(Event)
-	if err := s.Scan(&e.Id, &e.Summary, &e.Description, &m, &e.State, &e.Version, &e.Starts, &e.Ends, &e.ExStarts, &e.ExEnds, &e.User, &as, &cs, &e.Lastmod); err != nil {
+	if err := s.Scan(&e.Id, &e.Source, &e.Summary, &e.Description, &m, &e.State, &e.Version, &e.Starts, &e.Ends, &e.ExStarts, &e.ExEnds, &e.User, &as, &cs, &e.Lastmod); err != nil {
 		return nil, err
 	}
 	if err := json.Unmarshal(m, &e.Meta); err != nil && m != nil {

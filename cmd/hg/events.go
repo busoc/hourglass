@@ -12,6 +12,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func listSources(_ *http.Request) (interface{}, error) {
+	return hourglass.ListSources(db)
+}
+
 func listEvents(r *http.Request) (interface{}, error) {
 	var fd, td time.Time
 	q := r.URL.Query()
@@ -25,7 +29,7 @@ func listEvents(r *http.Request) (interface{}, error) {
 		}
 	}
 
-	ds, err := hourglass.ListEvents(db, fd, td, q["category[]"])
+	ds, err := hourglass.ListEvents(db, fd, td, q["category[]"], q["source[]"])
 	switch {
 	case err != nil:
 		return ds, err
