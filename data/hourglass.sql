@@ -104,7 +104,7 @@ create table schedule.events (
 	pk serial not null,
 	summary varchar(256) not null,
 	description text,
-	source varchar(64),
+	source varchar(64) default "busoc" not null,
 	meta json,
 	state usoc.status default 'scheduled',
 	dtstart timestamp not null,
@@ -453,7 +453,7 @@ create view vfiles(pk, version, name, summary, meta, person, lastmod, superseede
 	where
 		not f.canceled;
 
-create view vevents(pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, categories, person, attendees, lastmod, parent) as
+create view vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, categories, person, attendees, lastmod, parent) as
 	with items(event, categories) as (
 		select
 			e.event,
@@ -482,6 +482,7 @@ create view vevents(pk, summary, description, meta, state, version, dtstart, dte
 	)
 	select
 		e.pk,
+		e.source,
 		e.summary,
 		coalesce(e.description, ''),
 		e.meta,
@@ -670,9 +671,10 @@ create trigger trackFiles
 	when (not OLD.canceled or OLD.parent is null)
 	execute procedure updateFiles();
 
-create view revisions.vevents(pk, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
+create view revisions.vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
 	select
 		e.pk,
+		e.source,
 		e.summary,
 		coalesce(e.description, ''),
 		e.meta,
