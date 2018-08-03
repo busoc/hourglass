@@ -60,7 +60,7 @@ func ListEvents(db *sql.DB, f, t time.Time, cs, vs []string) ([]*Event, error) {
 		where
 			(dtstart between $1 and $2 or ($1, $2) overlaps(dtstart, dtend))
 			and case when cardinality($3::varchar[])>0 then categories&&$3::varchar[] else true end
-			and case when cardinality($4::varchar[])>0 then source=any($4) else true end`
+			and case when cardinality($4::varchar[])>0 then source=any($4) else source='' end`
 	rs, err := db.Query(q, f.UTC(), t.UTC(), pq.StringArray(cs), pq.StringArray(vs))
 	if err != nil {
 		return nil, err
