@@ -45,6 +45,11 @@ type Config struct {
 	Import   *I     `json:"import"`
 }
 
+func init() {
+	cli.Version = "1.1-beta"
+	cli.BuildTime = "2018-08-03 06:07:00"
+}
+
 func main() {
 	version := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
