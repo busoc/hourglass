@@ -243,7 +243,7 @@ create view vevents(pk, source, summary, description, meta, state, version, dtst
 	)
 	select
 		e.pk,
-		e.source,
+		coalesce(e.source, ''),
 		e.summary,
 		coalesce(e.description, ''),
 		e.meta,
@@ -328,7 +328,7 @@ create view vtransfers(pk, state, person, lastmod, location, event, uplink, slot
 create view revisions.vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
 	select
 		e.pk,
-		e.source,
+		coalesce(e.source, ''),
 		e.summary,
 		coalesce(e.description, ''),
 		e.meta,
