@@ -3,6 +3,7 @@ package hourglass
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/lib/pq"
 )
@@ -46,7 +47,7 @@ func ViewUser(db *sql.DB, id int) (*User, error) {
 		q = `select pk, firstname, lastname, initial, email, internal, positions from vusers where pk=$1`
 		s = `select settings from vusers where pk=$1`
 		e = `select pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod from vevents where $1=any(attendees)`
-		t = `select pk, summary, state, priority, person, version, meta, categories, assignees, dtstart, dtend, due, lastmod from vtodos where $1=any(assignees)`
+		t = `select pk, summary, description, state, priority, person, version, meta, categories, assignees, dtstart, dtend, due, lastmod from vtodos where $1=any(assignees)`
 	)
 	u, err := scanUsers(db.QueryRow(q, id))
 	switch err {
@@ -80,6 +81,7 @@ func ViewUser(db *sql.DB, id int) (*User, error) {
 	}
 	u.Todos, err = listTodos(rs)
 	if err != nil {
+		fmt.Println("list todos", err)
 		return nil, err
 	}
 

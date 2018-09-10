@@ -64,10 +64,11 @@ create table schedule.files (
 	lastmod timestamp not null default current_timestamp,
 	canceled bool default false,
 	parent int,
+	crc int default 0,
 	primary key(pk),
 	foreign key(person) references usoc.persons(pk),
 	foreign key(parent) references schedule.files(pk),
-	constraint files_name_unique unique(name),
+	-- constraint files_name_unique unique(name),
 	constraint files_name_length check(length(name)>0)
 );
 
@@ -156,9 +157,9 @@ create table schedule.uplinks (
 	foreign key(event) references schedule.events(pk),
 	foreign key(slot) references schedule.slots(pk),
 	foreign key(file) references schedule.files(pk),
-	foreign key(person) references usoc.persons(pk),
-	constraint uplinks_file_event_unique unique(file, event),
-	constraint uplinks_slot_event_unique unique(slot, event)
+	foreign key(person) references usoc.persons(pk)
+	-- constraint uplinks_file_event_unique unique(file, event),
+	-- constraint uplinks_slot_event_unique unique(slot, event)
 );
 
 create table schedule.transfers (
