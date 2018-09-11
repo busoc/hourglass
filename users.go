@@ -108,7 +108,13 @@ func UpdateUser(db *sql.DB, u *User) (*User, error) {
 }
 
 func UpdatePasswd(db *sql.DB, u *User, old, passwd string) error {
-	const q = `update usoc.persons set passwd=encode(digest($1, 'sha256'), 'hex') where pk=$2 and passwd=encode(digest($3, 'sha256'), 'hex')`
+	const (
+		e = `select pk from usoc.persons where pk=$1 and passwd=encode(digest($2, 'sha256'), 'hex')`
+		q = `update usoc.persons set passwd=encode(digest($1, 'sha256'), 'hex') where pk=$2 and passwd=encode(digest($3, 'sha256'), 'hex')`
+	)
+	if err := db.QueryRow(e, u.Id, old).Scan(&u.Id); err != nil {
+		return err
+	}
 	_, err := db.Exec(q, passwd, u.Id, old)
 	return err
 }
