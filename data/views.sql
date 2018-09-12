@@ -156,7 +156,7 @@ create view vslots(sid, name, person, category, lastmod, state, file) as
 	where
 		not s.canceled;
 
-create view vfiles(pk, version, name, summary, meta, person, lastmod, superseeded, original, length, sum, categories, slot, location) as
+create view vfiles(pk, version, name, crc, summary, meta, person, lastmod, superseeded, original, length, sum, categories, slot, location) as
 	with
 		cs(pk, vs) as (
 				select
@@ -185,6 +185,7 @@ create view vfiles(pk, version, name, summary, meta, person, lastmod, superseede
 		f.pk,
 		coalesce(rs.version+1, 1),
 		f.name,
+		f.crc,
 		coalesce(f.summary, ''),
 		f.meta,
 		p.initial,
