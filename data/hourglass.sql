@@ -78,6 +78,7 @@ create table revisions.files (
 );
 
 alter table revisions.files drop column content;
+alter table revisions.files drop column crc;
 
 create table schedule.files_categories (
 	file int not null,

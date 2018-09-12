@@ -1,6 +1,7 @@
 package hourglass
 
 import (
+	"log"
 	"bufio"
 	"bytes"
 	"database/sql"
@@ -64,7 +65,7 @@ func ViewFile(db *sql.DB, id int) (*File, error) {
 	const (
 		q = `select pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod from vfiles where pk=$1`
 		c = `select content from schedule.files where pk=$1 and content is not null and length(content) > 0`
-		v = `select pk, name, 0, slot, location, summary, categories, meta, version, length, sum, superseeded, false, person, lastmod from revisions.vfiles where pk=$1`
+		v = `select pk, name, 0 as crc, slot, location, summary, categories, meta, version, length, sum, superseeded, false, person, lastmod from revisions.vfiles where pk=$1`
 	)
 	f, err := scanFiles(db.QueryRow(q, id))
 	switch err {
@@ -97,6 +98,9 @@ func ViewFile(db *sql.DB, id int) (*File, error) {
 
 func NewFile(db *sql.DB, f *File) error {
 	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
 	if err = createFile(tx, f); err != nil {
 		tx.Rollback()
 		return err
@@ -118,11 +122,11 @@ func UpdateFile(db *sql.DB, f *File) error {
 			meta=$4,
 			lastmod=current_timestamp
 		where pk=$5 and not canceled returning lastmod`
-	tx, err := db.Begin()
+	meta, err := json.Marshal(f.Meta)
 	if err != nil {
 		return err
 	}
-	meta, err := json.Marshal(f.Meta)
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
