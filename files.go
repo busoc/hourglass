@@ -1,7 +1,6 @@
 package hourglass
 
 import (
-	"log"
 	"bufio"
 	"bytes"
 	"database/sql"
