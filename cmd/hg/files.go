@@ -25,7 +25,7 @@ func listFiles(r *http.Request) (interface{}, error) {
 
 func viewFile(r *http.Request) (interface{}, error) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	return hourglass.ViewFile(db, id)
+	return hourglass.ViewFile(db, id, true)
 }
 
 func newFile(r *http.Request) (interface{}, error) {
@@ -38,12 +38,12 @@ func newFile(r *http.Request) (interface{}, error) {
 	if err := hourglass.NewFile(db, f); err != nil {
 		return nil, err
 	}
-	return hourglass.ViewFile(db, f.Id)
+	return hourglass.ViewFile(db, f.Id, true)
 }
 
 func updateFile(r *http.Request) (interface{}, error) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	s, err := hourglass.ViewFile(db, id)
+	s, err := hourglass.ViewFile(db, id, false)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +61,12 @@ func updateFile(r *http.Request) (interface{}, error) {
 	if err := hourglass.UpdateFile(db, f); err != nil {
 		return nil, err
 	}
-	return hourglass.ViewFile(db, f.Id)
+	return hourglass.ViewFile(db, f.Id, true)
 }
 
 func deleteFile(r *http.Request) (interface{}, error) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	f, err := hourglass.ViewFile(db, id)
+	f, err := hourglass.ViewFile(db, id, false)
 	if err != nil {
 		return nil, err
 	}

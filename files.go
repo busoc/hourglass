@@ -60,7 +60,7 @@ func ListFiles(db *sql.DB, cs []string) ([]*File, error) {
 	return fs, nil
 }
 
-func ViewFile(db *sql.DB, id int) (*File, error) {
+func ViewFile(db *sql.DB, id int, raw bool) (*File, error) {
 	const (
 		q = `select pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod from vfiles where pk=$1`
 		c = `select content from schedule.files where pk=$1 and content is not null and length(content) > 0`
@@ -74,8 +74,10 @@ func ViewFile(db *sql.DB, id int) (*File, error) {
 		return nil, ErrNotFound
 	case nil:
 	}
-	if err := db.QueryRow(c, id).Scan(&f.Content); err != nil && f.Length > 0 {
-		return nil, err
+	if raw {
+		if err := db.QueryRow(c, id).Scan(&f.Content); err != nil && f.Length > 0 {
+			return nil, err
+		}
 	}
 	rs, err := db.Query(v, id)
 	if err != nil {
