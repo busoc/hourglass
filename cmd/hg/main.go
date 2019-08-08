@@ -99,6 +99,12 @@ func setupRoutesBis(r *mux.Router, c *Config) error {
 		Method  string
 		Handler Func
 	}{
+		{Path: "/events/", Handler: listEvents},
+		{Path: "/events/", Handler: newEvent, Method: http.MethodPost},
+		{Path: "/events/{id:[0-9]+}", Handler: viewEvent},
+		{Path: "/events/{id:[0-9]+}", Handler: newEvent, Method: http.MethodPost},
+		{Path: "/events/{id:[0-9]+}", Handler: updateEvent, Method: http.MethodPut},
+		{Path: "/events/{id:[0-9]+}", Handler: deleteEvent, Method: http.MethodDelete},
 		{Path: "/events/{source:[a-zA-Z0-9_]+}/", Handler: importEvents, Method: http.MethodPost},
 		{Path: "/sources/", Handler: listSources},
 		{Path: "/users/", Handler: listUsers},
