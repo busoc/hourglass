@@ -19,18 +19,18 @@ import (
 type Func func(*http.Request) (interface{}, error)
 
 func handle(f Func, w io.Writer, s jwt.Signer) http.Handler {
-	var h http.Handler
-	if s != nil {
-		h = cors(authorize(negociate(f), s))
-	} else {
-		h = negociate(f)
-	}
+	// var h http.Handler
+	// if s != nil {
+	// } else {
+	// 	h = negociate(f)
+	// }
+	h := cors(authorize(negociate(f), s))
 	return handlers.LoggingHandler(w, handlers.CompressHandler(h))
 }
 
 func allow(f Func, w io.Writer, u, p string, hosts []string) http.Handler {
 	if u == "" && p == "" && len(hosts) == 0 {
-		return handle(f, w, nil)
+		return negociate(f) //handle(f, w, nil)
 	}
 	sort.Strings(hosts)
 

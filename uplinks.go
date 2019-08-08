@@ -105,7 +105,7 @@ func ListTransfers(db *sql.DB, fd, td time.Time, cs, ts []string) ([]*Transfer, 
 		}
 		t.Event, _ = ViewEvent(db, e)
 		t.Slot, _ = viewSlot(db, s)
-		t.File, _ = ViewFile(db, f, false)
+		t.File, _ = ViewFile(db, f, false, false)
 		data = append(data, t)
 	}
 	return data, nil
@@ -121,7 +121,7 @@ func ViewTransfer(db *sql.DB, id int) (*Transfer, error) {
 	case nil:
 		t.Event, _ = ViewEvent(db, e)
 		t.Slot, _ = viewSlot(db, s)
-		t.File, _ = ViewFile(db, f, false)
+		t.File, _ = ViewFile(db, f, false, false)
 		return t, nil
 	case sql.ErrNoRows:
 		return nil, ErrNotFound
@@ -242,7 +242,7 @@ func scanUplink(sc Scanner, db *sql.DB) (*Uplink, error) {
 	case nil:
 		u.Slot, _ = viewSlot(db, s)
 		u.Event, _ = ViewEvent(db, e)
-		u.File, _ = ViewFile(db, f, false)
+		u.File, _ = ViewFile(db, f, false, false)
 		return u, nil
 	}
 }

@@ -36,11 +36,17 @@ type File struct {
 	Location string `json:"location"`
 
 	Versions []*File `json:"history,omitempty"`
+	Parents  []*File `json:"parents,omitempty"`
 }
 
-func ListFiles(db *sql.DB, cs []string) ([]*File, error) {
-	const q = `select pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod from vfiles where case when cardinality($1::varchar[])>0 then categories&&$1::varchar[] else true end`
-	rs, err := db.Query(q, pq.StringArray(cs))
+func ListFiles(db *sql.DB, which string, cs []string) ([]*File, error) {
+	const q = `
+select
+	pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod
+from vfiles
+	where case when cardinality($1::varchar[])>0 then categories&&$1::varchar[] else true end
+		and case when $2='latest' then not superseeded when $2='origin' then original else true end`
+	rs, err := db.Query(q, pq.StringArray(cs), which)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -60,7 +66,7 @@ func ListFiles(db *sql.DB, cs []string) ([]*File, error) {
 	return fs, nil
 }
 
-func ViewFile(db *sql.DB, id int, raw bool) (*File, error) {
+func ViewFile(db *sql.DB, id int, raw, parent bool) (*File, error) {
 	const (
 		q = `select pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod from vfiles where pk=$1`
 		c = `select content from schedule.files where pk=$1 and content is not null and length(content) > 0`
@@ -94,7 +100,33 @@ func ViewFile(db *sql.DB, id int, raw bool) (*File, error) {
 		f.Cyclic = crc
 		f.Versions = append(f.Versions, f)
 	}
+	if parent {
+		f.Parents = listParents(db, id)
+	}
 	return f, nil
+}
+
+func listParents(db *sql.DB, id int) []*File {
+	const q = `with recursive others(pk, parent) as
+		(select pk, parent from schedule.files where parent is not null union select all fs.pk, rs.parent from schedule.files fs join others rs on rs.pk=fs.parent),
+		list(pk) as (select parent from others where pk=$1)
+	select pk, name, crc, slot, location, summary, categories, meta, version, length, sum, superseeded, original, person, lastmod from vfiles where pk in (select pk from list);
+	`
+	rs, err := db.Query(q, id)
+	if err != nil {
+		return nil
+	}
+	defer rs.Close()
+
+	var fs []*File
+	for rs.Next() {
+		f, err := scanFiles(rs)
+		if err != nil {
+			break
+		}
+		fs = append(fs, f)
+	}
+	return fs
 }
 
 func NewFile(db *sql.DB, f *File) error {

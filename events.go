@@ -54,13 +54,6 @@ func ListEvents(db *sql.DB, f, t time.Time, cs, vs []string) ([]*Event, error) {
 		f = time.Now().Truncate(time.Hour * 24)
 		t = f.Add(time.Hour * 24)
 	}
-	// const q = `select
-	// 		pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod
-	// 	from vevents
-	// 	where
-	// 		(dtstart between $1 and $2 or ($1, $2) overlaps(dtstart, dtend))
-	// 		and case when cardinality($3::varchar[])>0 then array(select unnest(categories) x order by x)=$3::varchar[] else true end
-	// 		and case when cardinality($4::varchar[])>0 then source=any($4) else source='' end`
 	const q = `select
 			pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod
 		from vevents

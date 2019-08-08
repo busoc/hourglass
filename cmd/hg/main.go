@@ -63,8 +63,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	c := new(Config)
-	if err := json.NewDecoder(f).Decode(c); err != nil {
+	var c Config
+	if err := json.NewDecoder(f).Decode(&c); err != nil {
 		log.Fatalln(err)
 	}
 	f.Close()
@@ -80,11 +80,11 @@ func main() {
 	defer db.Close()
 
 	r := mux.NewRouter()
-	if err := setupRoutes(r, c); err != nil {
+	if err := setupRoutes(r, &c); err != nil {
 		log.Fatalln(err)
 	}
 	if c.Import != nil && c.Import.Prefix != "" {
-		setupRoutesBis(r, c)
+		setupRoutesBis(r, &c)
 	}
 	if err := http.ListenAndServe(c.Addr, r); err != nil {
 		log.Fatalln(err)
@@ -138,7 +138,13 @@ func setupRoutes(r *mux.Router, c *Config) error {
 	if c.Token.Secret == "random" || c.Token.Secret == "" {
 		c.Token.Secret = rustine.RandomString(16)
 	}
-	s, err := jwt.New("hs256", c.Token.Secret, c.Token.Issuer, c.Token.TTL)
+	options := []jwt.Option{
+		jwt.WithSecret([]byte(c.Token.Secret), jwt.HS512),
+		jwt.WithIssuer(c.Token.Issuer),
+		jwt.WithTime(time.Duration(c.Token.TTL)*time.Second, 0),
+	}
+	s, err := jwt.New(options...)
+	// s, err := jwt.New("hs256", c.Token.Secret, c.Token.Issuer, c.Token.TTL)
 	if err != nil {
 		return err
 	}
