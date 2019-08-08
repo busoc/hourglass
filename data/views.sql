@@ -13,7 +13,7 @@ drop view if exists revisions.vfiles cascade;
 drop view if exists revisions.vtodos cascade;
 drop view if exists revisions.vevents cascade;
 
-create view vjournals(pk, day, summary, meta, state, lastmod, person, categories) as
+create or replace view vjournals(pk, day, summary, meta, state, lastmod, person, categories) as
 	with cs(pk, vs) as (
 		select
 			j.journal,
@@ -38,7 +38,7 @@ create view vjournals(pk, day, summary, meta, state, lastmod, person, categories
 		join usoc.persons p on j.person=p.pk
 		left outer join cs c on j.pk=c.pk;
 
-create view vusers(pk, firstname, lastname, initial, email, internal, settings, passwd, positions) as
+create or replace view vusers(pk, firstname, lastname, initial, email, internal, settings, passwd, positions) as
 	with jobs(person, positions) as (
 		select
 			p.person,
@@ -63,7 +63,7 @@ create view vusers(pk, firstname, lastname, initial, email, internal, settings, 
 	where
 		passwd is not null;
 
-create view vcategories(pk, name, person, lastmod) as
+create or replace view vcategories(pk, name, person, lastmod) as
 	select
 		c.pk,
 		c.name,
@@ -74,7 +74,7 @@ create view vcategories(pk, name, person, lastmod) as
 	where
 		not c.canceled;
 
-create view vtodos(pk, summary, description, state, priority, person, version, meta, categories, assignees, due, dtstart, dtend, lastmod, parent) as
+create or replace view vtodos(pk, summary, description, state, priority, person, version, meta, categories, assignees, due, dtstart, dtend, lastmod, parent) as
 	with
 		ps(pk, vs) as (
 			select
@@ -130,7 +130,7 @@ create view vtodos(pk, summary, description, state, priority, person, version, m
 	where
 		not t.canceled;
 
-create view vslots(sid, name, person, category, lastmod, state, file) as
+create or replace view vslots(sid, name, person, category, lastmod, state, file) as
 	with
 		us(pk) as (
 			select
@@ -156,7 +156,7 @@ create view vslots(sid, name, person, category, lastmod, state, file) as
 	where
 		not s.canceled;
 
-create view vfiles(pk, version, name, crc, summary, meta, person, lastmod, superseeded, original, length, sum, categories, slot, location) as
+create or replace view vfiles(pk, version, name, crc, summary, meta, person, lastmod, superseeded, original, length, sum, categories, slot, location) as
 	with
 		cs(pk, vs) as (
 				select
@@ -190,7 +190,11 @@ create view vfiles(pk, version, name, crc, summary, meta, person, lastmod, super
 		f.meta,
 		p.initial,
 		f.lastmod,
-		not(exists(select v.pk from schedule.files v where v.pk=f.parent)),
+		f.parent is null or exists(select v.pk from schedule.files v where v.parent=f.pk),
+		-- case
+    --   when f.parent is null then false
+    --   else exists(select v.pk from schedule.files v where v.pk=f.parent)
+    -- end,
 		f.parent is null,
 		coalesce(length(f.content), 0),
 		coalesce(md5(f.content), ''),
@@ -215,7 +219,7 @@ create view vfiles(pk, version, name, crc, summary, meta, person, lastmod, super
 	where
 		not f.canceled;
 
-create view vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, categories, person, attendees, lastmod, parent) as
+create or replace view vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, categories, person, attendees, lastmod, parent) as
 	with items(event, categories) as (
 		select
 			e.event,
@@ -307,7 +311,7 @@ create or replace view vdownlinks(pk, state, person, lastmod, event, file, slot,
 		join (select pk from schedule.files f where f.content is null or length(f.content)=0) f on u.file=f.pk
 		join vslots s on u.slot=s.sid;
 
-create view vtransfers(pk, state, person, lastmod, location, event, uplink, slot, file, dtstamp, category) as
+create or replace view vtransfers(pk, state, person, lastmod, location, event, uplink, slot, file, dtstamp, category) as
 	select
 		t.pk,
 		t.state,
@@ -326,7 +330,7 @@ create view vtransfers(pk, state, person, lastmod, location, event, uplink, slot
 		join vslots s on u.slot=s.sid
 		join usoc.persons p on t.person=p.pk;
 
-create view revisions.vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
+create or replace view revisions.vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
 	select
 		e.pk,
 		coalesce(e.source, ''),
@@ -347,7 +351,7 @@ create view revisions.vevents(pk, source, summary, description, meta, state, ver
 		revisions.events e
 		join usoc.persons p on e.person=p.pk;
 
-create view revisions.vtodos(pk, summary, description, state, priority, person, version, meta, categories, assignees, dtstart, dtend, due, lastmod) as
+create or replace view revisions.vtodos(pk, summary, description, state, priority, person, version, meta, categories, assignees, dtstart, dtend, due, lastmod) as
 	select
 		t.pk,
 		t.summary,
@@ -367,7 +371,7 @@ create view revisions.vtodos(pk, summary, description, state, priority, person, 
 		revisions.todos t
 		join usoc.persons p on t.person=p.pk;
 
-create view revisions.vfiles(pk, name, slot, location, summary, categories, meta, version, length, sum, superseeded, person, lastmod) as
+create or replace view revisions.vfiles(pk, name, slot, location, summary, categories, meta, version, length, sum, superseeded, person, lastmod) as
 	select
 		f.pk,
 		f.name,
