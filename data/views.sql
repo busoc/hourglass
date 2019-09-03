@@ -288,7 +288,7 @@ create or replace view vuplinks(pk, dropbox, state, person, lastmod, event, file
 		schedule.uplinks u
 		join schedule.events e on u.event=e.pk
 		join usoc.persons p on u.person=p.pk
-		join (select pk, name from schedule.files f where f.content is not null and length(f.content)>0) f on u.file=f.pk
+		join (select pk, name from schedule.files f where not f.canceled and f.content is not null and length(f.content)>0) f on u.file=f.pk
 		join vslots s on u.slot=s.sid
 	where
 		u.pk in (select max(pk) from schedule.uplinks group by(slot));
@@ -308,7 +308,7 @@ create or replace view vdownlinks(pk, state, person, lastmod, event, file, slot,
 		schedule.uplinks u
 		join schedule.events e on u.event=e.pk
 		join usoc.persons p on u.person=p.pk
-		join (select pk from schedule.files f where f.content is null or length(f.content)=0) f on u.file=f.pk
+		join (select pk from schedule.files f where not f.canceled and f.content is not null or length(f.content)>0) f on u.file=f.pk
 		join vslots s on u.slot=s.sid;
 
 create or replace view vtransfers(pk, state, person, lastmod, location, event, uplink, slot, file, dtstamp, category) as
@@ -326,7 +326,7 @@ create or replace view vtransfers(pk, state, person, lastmod, location, event, u
 		s.category
 	from schedule.transfers t
 		join schedule.events e on t.event=e.pk
-		join schedule.uplinks u on t.uplink=u.pk
+		join (select u.* from schedule.uplinks u join schedule.files f on u.file=f.pk where not f.canceled) u on t.uplink=u.pk
 		join vslots s on u.slot=s.sid
 		join usoc.persons p on t.person=p.pk;
 
