@@ -12,6 +12,7 @@ drop view if exists vjournals cascade;
 drop view if exists revisions.vfiles cascade;
 drop view if exists revisions.vtodos cascade;
 drop view if exists revisions.vevents cascade;
+drop view if exists revisions.vrevisions cascade;
 
 create or replace view vjournals(pk, day, summary, meta, state, lastmod, person, categories) as
 	with cs(pk, vs) as (
@@ -36,7 +37,9 @@ create or replace view vjournals(pk, day, summary, meta, state, lastmod, person,
 	from
 		schedule.journals j
 		join usoc.persons p on j.person=p.pk
-		left outer join cs c on j.pk=c.pk;
+		left outer join cs c on j.pk=c.pk
+	where
+		not j.canceled;
 
 create or replace view vusers(pk, firstname, lastname, initial, email, internal, settings, passwd, positions) as
 	with jobs(person, positions) as (
@@ -329,6 +332,21 @@ create or replace view vtransfers(pk, state, person, lastmod, location, event, u
 		join (select u.* from schedule.uplinks u join schedule.files f on u.file=f.pk where not f.canceled) u on t.uplink=u.pk
 		join vslots s on u.slot=s.sid
 		join usoc.persons p on t.person=p.pk;
+
+
+create or replace view revisions.vjournals(pk, version, day, summary, meta, state, lastmod, person, categories) as
+	select
+		j.pk,
+		row_number() over (partition by j.pk order by j.lastmod),
+		j.day,
+		j.summary,
+		j.meta,
+		j.state,
+		j.lastmod,
+		p.initial,
+		coalesce(j.categories, '{}'::text[])
+	from revisions.journals j
+	join usoc.persons p on j.person=p.pk;
 
 create or replace view revisions.vevents(pk, source, summary, description, meta, state, version, dtstart, dtend, rtstart, rtend, person, attendees, categories, lastmod) as
 	select
