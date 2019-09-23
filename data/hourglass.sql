@@ -241,6 +241,6 @@ create table schedule.journals_categories (
 );
 
 create table revisions.journals (
-	like schedule.journals including DEFAULTS
-	categories []text
+	like schedule.journals including DEFAULTS,
+	categories text[]
 );

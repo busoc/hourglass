@@ -13,12 +13,14 @@ create function updateJournals() returns trigger as $auditJournals$
 				OLD.state,
 				OLD.lastmod,
 				OLD.person,
+				OLD.canceled,
 				v.categories
 			from vjournals v
-			when v.pk=OLD.pk;
+				where v.pk=OLD.pk;
 		delete from schedule.journals_categories where journal=OLD.pk;
-	end
-$audiJournals$ language plpgsql;
+		return NEW;
+	end;
+$auditJournals$ language plpgsql;
 
 create function updateTodos() returns trigger as $auditTodos$
 	begin
