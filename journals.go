@@ -65,6 +65,34 @@ func NewJournal(db *sql.DB, j *Journal) error {
 	return tx.Commit()
 }
 
+func UpdateJournal(db *sql.DB, j *Journal) error {
+	const q = `with u(pk) as (select pk from vusers where initial=$6)
+	update schedule.journals set day=$1, summary=$2, meta=$3, state=$4, person=(select pk from u) lastmod=current_timestamp where pk=$5 returning lastmod`
+	m, err := json.Marshal(j.Meta)
+	if err != nil {
+		return err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	if err := tx.QueryRow(q, j.Day, j.Summary, m, j.State, j.Id, j.User).Scan(&j.Lastmod); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := linkJournal2Categories(tx, j); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func DeleteJournal(db *sql.DB, j *Journal) error {
+	const q = `with u(pk) as (select pk from vusers where initial=$2) update schedule.journals set canceled=true, lastmod=current_timestamp, person=(select pk from u) where pk=$1`
+	_, err := db.Exec(q, j.Id, j.User)
+	return err
+}
+
 func listJournals(rs *sql.Rows) ([]*Journal, error) {
 	defer rs.Close()
 

@@ -171,6 +171,8 @@ func setupRoutes(r *mux.Router, c *Config) error {
 	r.Handle("/dors/", handle(listJournals, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/dors/", handle(newJournal, os.Stderr, s)).Methods("POST", "OPTIONS")
 	r.Handle("/dors/{id:[0-9]+}", handle(viewJournal, os.Stderr, s)).Methods("GET", "OPTIONS")
+	r.Handle("/dors/{id:[0-9]+}", handle(updateJournal, os.Stderr, s)).Methods("PUT", "OPTIONS")
+	r.Handle("/dors/{id:[0-9]+}", handle(deleteJournal, os.Stderr, s)).Methods("DELETE", "OPTIONS")
 
 	r.Handle("/sources/", handle(listSources, os.Stderr, s)).Methods("GET", "OPTIONS")
 	r.Handle("/events/", handle(listEvents, os.Stderr, s)).Methods("GET", "OPTIONS")

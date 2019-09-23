@@ -52,3 +52,37 @@ func newJournal(r *http.Request) (interface{}, error) {
 	}
 	return hourglass.ViewJournal(db, j.Id)
 }
+
+func updateJournal(r *http.Request) (interface{}, error) {
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	s, err := hourglass.ViewJournal(db, id)
+	if err != nil {
+		return nil, err
+	}
+	j := hourglass.Journal{
+		Id:         id,
+		Summary:    s.Summary,
+		Day:        s.Day,
+		State:      s.State,
+		Meta:       s.Meta,
+		Categories: s.Categories,
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, MaxBodySize)).Decode(&j); err != nil {
+		return nil, err
+	}
+	j.User = r.Context().Value("user").(string)
+	if err := hourglass.UpdateJournal(db, &j); err != nil {
+		return nil, err
+	}
+	return hourglass.ViewJournal(db, j.Id)
+}
+
+func deleteJournal(r *http.Request) (interface{}, error) {
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	j, err := hourglass.ViewJournal(db, id)
+	if err != nil {
+		return nil, err
+	}
+	j.User = r.Context().Value("user").(string)
+	return nil, hourglass.DeleteJournal(db, j)
+}

@@ -2,6 +2,24 @@ drop function if exists updateFiles() cascade;
 drop function if exists updateTodos() cascade;
 drop function if exists updateEvents() cascade;
 
+create function updateJournals() returns trigger as $auditJournals$
+	begin
+		insert into revisions.journals
+			select
+				OLD.pk,
+				OLD.day,
+				OLD.summary,
+				OLD.meta,
+				OLD.state,
+				OLD.lastmod,
+				OLD.person,
+				v.categories
+			from vjournals v
+			when v.pk=OLD.pk;
+		delete from schedule.journals_categories where journal=OLD.pk;
+	end
+$audiJournals$ language plpgsql;
+
 create function updateTodos() returns trigger as $auditTodos$
 	begin
 		insert into revisions.todos
@@ -86,6 +104,13 @@ $auditFiles$ language plpgsql;
 drop trigger if exists trackFiles on schedule.files;
 drop trigger if exists trackEvents on schedule.events;
 drop trigger if exists trackTodos on schedule.todos;
+drop trigger if exists trackJournals on schedule.journals;
+
+create trigger trackJournals
+	before update on schedule.journals
+	for each row
+	when (not OLD.canceled)
+	execute procedure updateJournals();
 
 create trigger trackTodos
 	before update on schedule.todos

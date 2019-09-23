@@ -286,7 +286,7 @@ create or replace view vuplinks(pk, dropbox, state, person, lastmod, event, file
 		s.category
 	from
 		schedule.uplinks u
-		join schedule.events e on u.event=e.pk
+		join (select * from schedule.events e where not e.canceled) e on u.event=e.pk
 		join usoc.persons p on u.person=p.pk
 		join (select pk, name from schedule.files f where not f.canceled and (f.content is not null and length(f.content)>0)) f on u.file=f.pk
 		join vslots s on u.slot=s.sid
@@ -306,7 +306,7 @@ create or replace view vdownlinks(pk, state, person, lastmod, event, file, slot,
 		s.category
 	from
 		schedule.uplinks u
-		join schedule.events e on u.event=e.pk
+		join (select * from schedule.events e where not e.canceled) e on u.event=e.pk
 		join usoc.persons p on u.person=p.pk
 		join (select pk from schedule.files f where not f.canceled and (f.content is not null or length(f.content)>0)) f on u.file=f.pk
 		join vslots s on u.slot=s.sid;
@@ -325,7 +325,7 @@ create or replace view vtransfers(pk, state, person, lastmod, location, event, u
 		e.dtstart,
 		s.category
 	from schedule.transfers t
-		join schedule.events e on t.event=e.pk
+		join (select * from schedule.events e where not e.canceled) e on t.event=e.pk
 		join (select u.* from schedule.uplinks u join schedule.files f on u.file=f.pk where not f.canceled) u on t.uplink=u.pk
 		join vslots s on u.slot=s.sid
 		join usoc.persons p on t.person=p.pk;

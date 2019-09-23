@@ -227,6 +227,7 @@ create table schedule.journals (
 	state usoc.status not null default 'scheduled',
 	lastmod timestamp not null default current_timestamp,
 	person int not null,
+	canceled bool not null default false,
 	primary key(pk),
 	foreign key(person) references usoc.persons(pk)
 );
@@ -241,4 +242,5 @@ create table schedule.journals_categories (
 
 create table revisions.journals (
 	like schedule.journals including DEFAULTS
+	categories []text
 );
