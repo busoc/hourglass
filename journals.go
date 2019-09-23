@@ -17,6 +17,8 @@ type Journal struct {
 	Lastmod    time.Time              `json:"lastmod"`
 	Meta       map[string]interface{} `json:"metadata"`
 	Categories []string               `json:"categories"`
+
+	Versions []*Journal `json:"history,omitempty"`
 }
 
 func ListJournals(db *sql.DB, f, t time.Time, cs []string) ([]*Journal, error) {
@@ -37,7 +39,10 @@ func ListJournals(db *sql.DB, f, t time.Time, cs []string) ([]*Journal, error) {
 }
 
 func ViewJournal(db *sql.DB, id int) (*Journal, error) {
-	const q = `select pk, day, summary, meta, state, lastmod, person, categories from vjournals where pk=$1`
+	const (
+		q = `select pk, day, summary, meta, state, lastmod, person, categories from vjournals where pk=$1`
+		v = `select pk, day, summary, meta, state, lastmod, person, categories from revisions.vjournals where pk=$1`
+	)
 	j, err := scanJournals(db.QueryRow(q, id))
 	switch err {
 	default:
@@ -45,8 +50,18 @@ func ViewJournal(db *sql.DB, id int) (*Journal, error) {
 	case sql.ErrNoRows:
 		return nil, ErrNotFound
 	case nil:
-		return j, err
+		// return j, err
 	}
+
+	rs, err := db.Query(v, id)
+	switch err {
+	case nil:
+		j.Versions, err = listJournals(rs)
+	case sql.ErrNoRows:
+	default:
+		return nil, err
+	}
+	return j, err
 }
 
 func NewJournal(db *sql.DB, j *Journal) error {
@@ -67,7 +82,7 @@ func NewJournal(db *sql.DB, j *Journal) error {
 
 func UpdateJournal(db *sql.DB, j *Journal) error {
 	const q = `with u(pk) as (select pk from vusers where initial=$6)
-	update schedule.journals set day=$1, summary=$2, meta=$3, state=$4, person=(select pk from u) lastmod=current_timestamp where pk=$5 returning lastmod`
+	update schedule.journals set day=$1, summary=$2, meta=$3, state=$4, person=(select pk from u), lastmod=current_timestamp where pk=$5 and not canceled returning lastmod`
 	m, err := json.Marshal(j.Meta)
 	if err != nil {
 		return err
