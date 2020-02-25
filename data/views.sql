@@ -289,12 +289,33 @@ create or replace view vuplinks(pk, dropbox, state, person, lastmod, event, file
 		s.category
 	from
 		schedule.uplinks u
-		join (select * from schedule.events e where not e.canceled) e on u.event=e.pk
+		join schedule.events e on u.event=e.pk
 		join usoc.persons p on u.person=p.pk
-		join (select pk, name from schedule.files f where not f.canceled and (f.content is not null and length(f.content)>0)) f on u.file=f.pk
+		join (select pk, name from schedule.files f where f.content is not null and length(f.content)>0) f on u.file=f.pk
 		join vslots s on u.slot=s.sid
 	where
 		u.pk in (select max(pk) from schedule.uplinks group by(slot));
+
+-- create or replace view vuplinks(pk, dropbox, state, person, lastmod, event, file, slot, dtstamp, category) as
+-- 	select
+-- 		u.pk,
+-- 		concat_ws('_', 'S', u.slot, upper(regexp_replace(s.name, '\.', '_')), upper(split_part(f.name, '.', 1)), to_char(e.dtstart, 'YY_DDD_HH24_MI')),
+-- 		u.state,
+-- 		p.initial,
+-- 		u.lastmod,
+-- 		u.event,
+-- 		u.file,
+-- 		u.slot,
+-- 		coalesce(e.rtstart, e.dtstart),
+-- 		s.category
+-- 	from
+-- 		schedule.uplinks u
+-- 		join (select * from schedule.events e where not e.canceled) e on u.event=e.pk
+-- 		join usoc.persons p on u.person=p.pk
+-- 		join (select pk, name from schedule.files f where not f.canceled and (f.content is not null and length(f.content)>0)) f on u.file=f.pk
+-- 		join vslots s on u.slot=s.sid
+-- 	where
+-- 		u.pk in (select max(pk) from schedule.uplinks group by(slot));
 
 create or replace view vdownlinks(pk, state, person, lastmod, event, file, slot, dtstamp, category) as
 	select
